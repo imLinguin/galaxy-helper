@@ -1,4 +1,6 @@
-exe = executable('GalaxyCommunication', 'main.c',
+sources = ['main.c', 'service.c', 'galaxy.c', 'cjson/cJSON.c']
+
+exe = executable('galaxy', sources,
   native: false,
   install : true)
 
