@@ -46,7 +46,7 @@ char ** find_game_exe_names(void) {
             strcat(file_path, FindFileData.cFileName);
 
             // If file is bigger than 1MiB, skip it
-            if (FindFileData.nFileSizeLow >= 1024 * 1024) {
+            if (FindFileData.nFileSizeHigh == 0 && FindFileData.nFileSizeLow >= 1024 * 1024) {
                 goto cleanup_file;
             }
 
