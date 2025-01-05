@@ -32,6 +32,7 @@ This is meant for Wine/Proton environments, thus unix-like system is required.
 You will need
 - mingw32
 - winegcc (usually provided by wine package)
+- protoc and protobuf-c installed - for protobuf to C generation
 
 ```
 meson setup --cross-file meson/x86_64-w64-mingw32.txt --native-file meson/winegcc.txt build
