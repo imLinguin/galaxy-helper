@@ -8,23 +8,35 @@
 #include "cjson/cJSON.h"
 #include "protocols.h"
 
+#define eprintf(...) fprintf(stderr, __VA_ARGS__);
+
 int main(int argc, char** argv) {
     if (argc == 1) {
-        fprintf(stderr, "Need an exe to run!\n");
-        return 0;
+        eprintf("Need an exe to run!\n");
+        return -1;
     }
-    char** game_exe_names = NULL;
-    char* gog_game_id = NULL;
+    GameDetails details = { 0 };
 
-    gog_game_id = getenv("GALAXY_GAME_ID");
-    if (!gog_game_id) gog_game_id = getenv("HEROIC_APP_NAME");
-
-    game_exe_names = find_game_exe_names();
+    // Obtain information about the game
+    if (!find_game_details(&details)) {
+        int index = 0;
+        eprintf("[galaxy_helper] Detected game \"%s\" (%s)\n", details.title, details.game_id);
+        if (details.exe_names) {
+            char *exe;
+            eprintf("[galaxy_helper] Handler will look for: ");
+            while((exe = details.exe_names[index++])) {
+                eprintf("\"%s\" ", exe);
+            }
+            eprintf("\n");
+        }
+    } else {
+        eprintf("[galaxy_helper] Failed to determine game information. The overlay will not get injected\n");
+    }
 
     // START AND TRACK THE PROCESS
     
 
-    exe_names_free(game_exe_names);
+    free_game_details(&details);
     return 0;
 }
 
