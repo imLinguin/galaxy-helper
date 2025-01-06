@@ -100,12 +100,25 @@ int find_game_details(GameDetails* game_details) {
                 char *new_exe_name = NULL;
 
                 if (category && path && (strcmp(cJSON_GetStringValue(category), "game") == 0)) {
+                    int is_exe = 0;
+                    static const char exeStr[] = ".exe";
                     char *pathStr = cJSON_GetStringValue(path);
                     if (!pathStr) {
                         goto cleanup_file;
                     }
+
                     unsigned long long pathLen = strlen(pathStr), new_length = 0;
                     int index = 0;
+
+                    for (int i = 0; i < 4; i++) {
+                        if (pathStr[i + pathLen - 4] != exeStr[i]) {
+                            is_exe = 0;
+                            break;
+                        }
+                        is_exe = 1;
+                    }
+
+                    if (!is_exe) goto cleanup_file;
 
                     // Get last part of the path - exe name
                     for (unsigned long long i = pathLen - 1; i > 0; i--) {
