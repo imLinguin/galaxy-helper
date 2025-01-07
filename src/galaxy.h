@@ -2,10 +2,12 @@
 #ifndef BRIDGE_GALAXY_H
 #define BRIDGE_GALAXY_H
 
+#include <windows.h>
+
 typedef struct {
     char* game_id;
     char* title;
-    char** exe_names;
+    WCHAR** exe_names;
 } GameDetails; 
 
 int find_game_details(GameDetails *game_details);
