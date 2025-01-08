@@ -1,5 +1,5 @@
-sources = ['main.c', 'service.c', 'galaxy.c', 'wine.c', 'cjson/cJSON.c']
-headers = ['galaxy.h', 'protocols.h', 'service.h', 'wine.h', 'cjson/cJSON.h']
+sources = ['main.c', 'service.c', 'galaxy.c', 'wine.c', 'overlay.c', 'cjson/cJSON.c']
+headers = ['galaxy.h', 'protocols.h', 'service.h', 'wine.h', 'overlay.h', 'cjson/cJSON.h']
 
 exe = executable('galaxy',
   [sources, headers],

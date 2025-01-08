@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <tlhelp32.h>
 
+#include "overlay.h"
 #include "wine.h"
 #include "galaxy.h"
 #include "service.h"
@@ -23,6 +24,7 @@ int wmain(int argc, WCHAR** argv) {
     HANDLE hProcessSnap = INVALID_HANDLE_VALUE;
     HANDLE process = INVALID_HANDLE_VALUE;
     GameDetails details = { 0 };
+    OverlayInfo overlay = { 0 };
 
     // Obtain information about the game
     if (!find_game_details(&details)) {
@@ -34,6 +36,7 @@ int wmain(int argc, WCHAR** argv) {
             while((exe = details.exe_names[index++])) {
                 eprintf("\"%ls\" ", exe);
             }
+            eprintf("\n");
         }
     } else {
         eprintf("[galaxy_helper] Failed to determine game information. The overlay will not get injected\n");
@@ -57,7 +60,7 @@ int wmain(int argc, WCHAR** argv) {
         wcscat(args, argv[i]);
     }
 
-    eprintf("Spawning %ls %ls\n", argv[1], args);
+    eprintf("[galaxy_helper] Spawning %ls %ls\n", argv[1], args);
     ShellExecuteW(NULL, NULL, convert_to_win32(argv[1]), args, NULL, SW_SHOWNORMAL);
     ShowWindow(GetConsoleWindow(), SW_HIDE);
 
@@ -78,8 +81,8 @@ int wmain(int argc, WCHAR** argv) {
             int index = 0; 
             while((exe = details.exe_names[index++])) {
                 if (wcsstr(exe, pe32.szExeFile)) {
-                    eprintf("Found target executable %ls\n", exe);
-                    process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pe32.th32ProcessID);
+                    eprintf("[galaxy_helper] Found target executable %ls\n", exe);
+                    process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, FALSE, pe32.th32ProcessID);
                     break;
                 }
             }
@@ -92,19 +95,22 @@ int wmain(int argc, WCHAR** argv) {
         goto end;
     }
 
-    eprintf("Waiting for app exit\n");
-
-    DWORD process_exit_code = STILL_ACTIVE;
-    while (1) {
-        Sleep(1000);
-        if (!GetExitCodeProcess(process, &process_exit_code) || process_exit_code != STILL_ACTIVE) break;
+    overlay = overlay_get_info(pe32.th32ProcessID, &details);
+    if (!overlay.parameters || !overlay.executable || !overlay.cwd) {
+        eprintf("[galaxy_helper] failed to get overlay info");
     }
-
+    else {
+        ShellExecuteW(NULL, NULL, overlay.executable, overlay.parameters, overlay.cwd, SW_NORMAL);
+    }
+    eprintf("[galaxy_helper] Waiting for app exit\n");
+    WaitForSingleObject(process, INFINITE);
+    eprintf("[galaxy_helper] Finished waiting for game\n");
 end:
     CloseHandle(process);
     CloseHandle(hProcessSnap);
     free_game_details(&details);
     free(args);
+    free_overlay_details(&overlay);
     return retval;
 }
 

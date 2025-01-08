@@ -164,3 +164,6 @@ cleanup_file:
     return 0;
 }
 
+WCHAR* get_comet_redist(void) {
+    return _wgetenv(L"COMET_REDIST_PATH");
+}
