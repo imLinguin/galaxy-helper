@@ -4,7 +4,7 @@
 
 #include <windows.h>
 
-typedef struct {
+typedef struct GameDetails {
     char* game_id;
     char* title;
     WCHAR** exe_names;

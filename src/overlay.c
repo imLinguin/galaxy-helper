@@ -31,8 +31,6 @@ OverlayInfo overlay_get_info(DWORD pid, GameDetails* game_details) {
         return overlay_details;
     }
 
-    printf("Getting overlay info\n");
-
     executable = calloc(wcslen(comet_redist) + sizeof(comet_overlay), sizeof(*executable)); 
     comet_webpath = calloc(wcslen(comet_redist) + sizeof(comet_web), sizeof(*comet_webpath)); 
     parameters = calloc(10 * 1024, sizeof(*parameters));
@@ -66,8 +64,8 @@ OverlayInfo overlay_get_info(DWORD pid, GameDetails* game_details) {
     overlay_details.parameters = parameters;
     overlay_details.cwd = comet_cwd_win;
 
-    wprintf(L"[OVERLAY] \"%ls\" %ls\n", overlay_details.executable, parameters);
-    wprintf(L"[OVERLAY] cwd: %ls\n", comet_cwd_win);
+    wprintf(L"[galaxy_helper] \"%ls\" %ls\n", overlay_details.executable, parameters);
+    wprintf(L"[galaxy_helper] cwd: %ls\n", comet_cwd_win);
 
 cleanup:
     free(executable);

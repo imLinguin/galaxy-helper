@@ -1,3 +1,4 @@
+#include <errhandlingapi.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -23,8 +24,14 @@ int wmain(int argc, WCHAR** argv) {
     WCHAR* args;
     HANDLE hProcessSnap = INVALID_HANDLE_VALUE;
     HANDLE process = INVALID_HANDLE_VALUE;
+    HANDLE win_pipe = INVALID_HANDLE_VALUE;
+    int unix_pipe = 0;
     GameDetails details = { 0 };
     OverlayInfo overlay = { 0 };
+
+    if (!load_functions_once()) {
+        eprintf("[galaxy_helper] Failed to load unix functions for sockets\n");
+    }
 
     // Obtain information about the game
     if (!find_game_details(&details)) {
@@ -100,14 +107,28 @@ int wmain(int argc, WCHAR** argv) {
         eprintf("[galaxy_helper] failed to get overlay info");
     }
     else {
+        init_pipes(pe32.th32ProcessID, &win_pipe, &unix_pipe);
         ShellExecuteW(NULL, NULL, overlay.executable, overlay.parameters, overlay.cwd, SW_NORMAL);
     }
     eprintf("[galaxy_helper] Waiting for app exit\n");
-    WaitForSingleObject(process, INFINITE);
+    char buffer[1024];
+    while (WaitForSingleObject(process, 100) == WAIT_TIMEOUT) {
+        DWORD bytesRead = 0;
+        if (ReadFile(win_pipe, buffer, 1024, &bytesRead, NULL)) {
+            eprintf("[galaxy_helper] read %ld from pipe\n", bytesRead);
+        }
+        else if (GetLastError() == ERROR_PIPE_LISTENING) {
+            eprintf("[galaxy_helper] Waiting for pipe to open on client side\n");
+        }
+        else {
+            eprintf("[galaxy_helper] failed to read from pipe %ld\n", GetLastError());
+        }
+    }
     eprintf("[galaxy_helper] Finished waiting for game\n");
 end:
     CloseHandle(process);
     CloseHandle(hProcessSnap);
+    CloseHandle(win_pipe);
     free_game_details(&details);
     free(args);
     free_overlay_details(&overlay);

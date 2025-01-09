@@ -5,7 +5,7 @@
 #include "galaxy.h"
 #include <windows.h>
 
-typedef struct {
+typedef struct OverlayInfo {
     WCHAR* executable;
     WCHAR* parameters;
     WCHAR* cwd;

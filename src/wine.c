@@ -8,7 +8,7 @@ WCHAR* convert_to_win32(const WCHAR *unixW) {
 
     HMODULE k32 = LoadLibraryW(L"kernel32");
     wine_get_dos_file_name_PFN pwine_get_dos_file_name =
-        (wine_get_dos_file_name_PFN)GetProcAddress(k32, "wine_get_dos_file_name");
+        (wine_get_dos_file_name_PFN)(ULONG_PTR)GetProcAddress(k32, "wine_get_dos_file_name");
 
     if (!pwine_get_dos_file_name) return NULL;
 

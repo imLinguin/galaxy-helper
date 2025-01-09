@@ -4,6 +4,7 @@ headers = ['galaxy.h', 'protocols.h', 'service.h', 'wine.h', 'overlay.h', 'cjson
 exe = executable('galaxy',
   [sources, headers],
   dependencies: [protobuf_c_dep, protobuf_compiled],
+  include_directories: ['..'],
   link_args: ['-municode'],
   native: false,
   install : true)
