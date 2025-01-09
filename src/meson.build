@@ -5,7 +5,7 @@ exe = executable('galaxy',
   [sources, headers],
   dependencies: [protobuf_c_dep, protobuf_compiled],
   include_directories: ['..'],
-  link_args: ['-municode'],
+  link_args: ['-municode', '-lmswsock', '-lws2_32', '-ladvapi32'],
   native: false,
   install : true)
 

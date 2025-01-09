@@ -1,10 +1,16 @@
 #include "galaxy.h"
 #include "cjson/cJSON.h"
 
+#include <winsock2.h>
 #include <windows.h>
+#include <ws2tcpip.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "galaxy.protocols.communication_service.pb-c.h"
+#include "gog.protocols.pb.pb-c.h"
+#include "protobuf-c/protobuf-c.h"
+#include "protocols.h"
 
 void free_game_details(GameDetails* game_details) {
     if (game_details->exe_names) {
@@ -167,3 +173,98 @@ cleanup_file:
 WCHAR* get_comet_redist(void) {
     return _wgetenv(L"COMET_REDIST_PATH");
 }
+
+WINBOOL notify_comet(DWORD pid) {
+    int iResult;
+    struct addrinfo *result = NULL, *ptr = NULL, hints;
+    unsigned char* buffer = NULL;
+    WSADATA wsaData;
+    SOCKET ConnectSocket = INVALID_SOCKET;
+
+    iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
+    if (iResult != 0) {
+        return FALSE;
+    }
+    ZeroMemory(&hints, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    iResult = getaddrinfo("127.0.0.1", "9977", &hints, &result);
+    if (iResult != 0) {
+        WSACleanup();
+        return FALSE;
+    }
+
+    for (ptr = result; ptr != NULL; ptr=ptr->ai_next) {
+        ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+        if (ConnectSocket == INVALID_SOCKET) {
+            WSACleanup();
+            freeaddrinfo(result);
+            return FALSE;
+        }
+
+        iResult = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
+        if (iResult == SOCKET_ERROR) {
+            closesocket(ConnectSocket);
+            ConnectSocket = INVALID_SOCKET;
+            continue;
+        }
+
+        break;
+    }
+
+    freeaddrinfo(result);
+
+    if (ConnectSocket == INVALID_SOCKET) {
+        WSACleanup();
+        return FALSE;
+    }
+
+    Gog__Protocols__Pb__Header header;
+    Galaxy__Protocols__CommunicationService__StartGameSessionRequest start_request;
+    galaxy__protocols__communication_service__start_game_session_request__init(&start_request);
+    gog__protocols__pb__header__init(&header);
+
+    start_request.game_pid = (uint32_t)pid;
+    start_request.has_game_pid = 1;
+    start_request.overlay_support = GALAXY__PROTOCOLS__COMMUNICATION_SERVICE__START_GAME_SESSION_REQUEST__OVERLAY_SUPPORT__OVERLAY_SUPPORT_ENABLED;
+    start_request.has_overlay_support = 1;
+
+    header.size = galaxy__protocols__communication_service__start_game_session_request__get_packed_size(&start_request);
+    header.has_size = 1;
+    header.oseq = 1;
+    header.has_oseq = 1;
+    header.type = GALAXY__PROTOCOLS__COMMUNICATION_SERVICE__MESSAGE_TYPE__START_GAME_SESSION_REQUEST;
+    header.sort = GALAXY__PROTOCOLS__COMMUNICATION_SERVICE__MESSAGE_SORT__MESSAGE_SORT;
+
+    unsigned short header_size = gog__protocols__pb__header__get_packed_size(&header);
+    unsigned short payload_size = header_size + header.size;
+    int total_size = sizeof(short) + (sizeof(char) * payload_size);
+    buffer = malloc(total_size);
+    if (!buffer) {
+        closesocket(ConnectSocket);
+        ConnectSocket = INVALID_SOCKET;
+        WSACleanup();
+    }
+
+    short r_header_size = _byteswap_ushort(header_size);
+    memcpy(buffer, &r_header_size, sizeof(header_size));
+    gog__protocols__pb__header__pack(&header, buffer+sizeof(header_size));
+    galaxy__protocols__communication_service__start_game_session_request__pack(&start_request, buffer + sizeof(header_size) + header_size);
+
+    iResult = send(ConnectSocket, (char*)buffer, total_size, 0);
+    if (iResult == SOCKET_ERROR) {
+        printf("Failed to send data to socket");
+        free(buffer);
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return FALSE;
+    }
+
+    closesocket(ConnectSocket);
+    free(buffer);
+    WSACleanup();
+    return TRUE;
+}
+

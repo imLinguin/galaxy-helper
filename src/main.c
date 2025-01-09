@@ -1,7 +1,7 @@
-#include <errhandlingapi.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <winsock2.h>
 #include <windows.h>
 #include <tlhelp32.h>
 
@@ -10,7 +10,6 @@
 #include "galaxy.h"
 #include "service.h"
 #include "cjson/cJSON.h"
-#include "protocols.h"
 
 #define eprintf(...) fprintf(stderr, __VA_ARGS__);
 
@@ -109,6 +108,9 @@ int wmain(int argc, WCHAR** argv) {
     else {
         init_pipes(pe32.th32ProcessID, &win_pipe, &unix_pipe);
         ShellExecuteW(NULL, NULL, overlay.executable, overlay.parameters, overlay.cwd, SW_NORMAL);
+        if (!notify_comet(pe32.th32ProcessID)) {
+            eprintf("Failed to notify comet about game session\n");
+        }
     }
     eprintf("[galaxy_helper] Waiting for app exit\n");
     char buffer[1024];
