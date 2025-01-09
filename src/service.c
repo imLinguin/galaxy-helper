@@ -4,7 +4,7 @@
 #include "unixlib/socket.h"
 
 static HMODULE unixlib = NULL;
-static SocketFunctions socket_functions;
+static UnixlibFunctions socket_functions;
 
 WINBOOL load_functions_once(void) {
     if (unixlib) return FALSE;
@@ -30,4 +30,17 @@ WINBOOL init_pipes(DWORD pid, HANDLE* win_pipe, int* unix_pipe) {
     *win_pipe = CreateNamedPipe(pipeName, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE, PIPE_UNLIMITED_INSTANCES, 1024, 1024, 0, NULL);
 
     return TRUE;
+}
+
+WCHAR* get_comet_redist(void) {
+    if(socket_functions.comet_redist) {
+        char* redist = socket_functions.comet_redist();
+        if (!redist) return NULL;
+        WCHAR* new_str = calloc(strlen(redist)+1, sizeof(WCHAR));
+        if (!new_str) return NULL;
+        mbstowcs(new_str, redist, strlen(redist));
+
+        return new_str;
+    }
+    return NULL;
 }

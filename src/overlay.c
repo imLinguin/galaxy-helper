@@ -1,9 +1,10 @@
 #include <wchar.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <overlay.h>
-#include <galaxy.h>
-#include <wine.h>
+#include "overlay.h"
+#include "galaxy.h"
+#include "wine.h"
+#include "service.h"
 
 
 void free_overlay_details(OverlayInfo *overlay) {

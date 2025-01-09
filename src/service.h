@@ -4,6 +4,7 @@
 
 #include <windows.h>
 
+WCHAR* get_comet_redist(void);
 WINBOOL load_functions_once(void);
 WINBOOL init_pipes(DWORD pid, HANDLE* win_pipe, int* unix_pipe);
 

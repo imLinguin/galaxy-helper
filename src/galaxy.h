@@ -12,7 +12,6 @@ typedef struct GameDetails {
 
 int find_game_details(GameDetails *game_details);
 void free_game_details(GameDetails *game_details);
-WCHAR* get_comet_redist(void);
 WINBOOL notify_comet(DWORD pid);
 
 

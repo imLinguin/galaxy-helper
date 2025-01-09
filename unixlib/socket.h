@@ -3,16 +3,17 @@
 #ifndef SOCKET_H
 #define SOCKET_H
 
-typedef struct SocketFunctions {
-    int (*create)(int* const out_socket);
-    void (*close)(int socket);
-} SocketFunctions;
+typedef struct UnixlibFunctions {
+    int __stdcall (*create)(int* const out_socket);
+    void __stdcall (*close)(int socket);
+    char* __stdcall (*comet_redist)(void);
+} UnixlibFunctions;
 
 
-void unix_socket_init(SocketFunctions* const out_functions);
-int socket_create(int* const socket);
-void socket_close(int socket);
+void __stdcall unix_socket_init(UnixlibFunctions* const out_functions);
+int __stdcall socket_create(int* const socket);
+void __stdcall socket_close(int socket);
 
-typedef void (*unix_socket_init_t)(SocketFunctions* out_functions);
+typedef void __stdcall (*unix_socket_init_t)(UnixlibFunctions* out_functions);
 
 #endif

@@ -170,10 +170,6 @@ cleanup_file:
     return 0;
 }
 
-WCHAR* get_comet_redist(void) {
-    return _wgetenv(L"COMET_REDIST_PATH");
-}
-
 WINBOOL notify_comet(DWORD pid) {
     int iResult;
     struct addrinfo *result = NULL, *ptr = NULL, hints;
