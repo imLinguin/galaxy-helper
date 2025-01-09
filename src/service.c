@@ -25,7 +25,7 @@ WINBOOL load_functions_once(void) {
 }
 
 WINBOOL init_pipes(DWORD pid, HANDLE* win_pipe, int* unix_pipe) {
-    char pipeName[256];
+    char pipeName[MAX_PATH];
     sprintf(pipeName, "\\\\.\\pipe\\Galaxy-%ld-CommunicationService-Overlay", pid);
     *win_pipe = CreateNamedPipe(pipeName, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE, PIPE_UNLIMITED_INSTANCES, 1024, 1024, 0, NULL);
 

@@ -22,7 +22,7 @@ void __stdcall socket_close(int socket) {
 
 char* __stdcall comet_redist(void) {
     char* start = getenv("XDG_DATA_HOME");
-    char* new_str = calloc(256, sizeof(char));
+    char* new_str = calloc(260, sizeof(char));
     if (start) {
         memcpy(new_str, start, strlen(start));
         strcat(new_str, "/comet/redist");

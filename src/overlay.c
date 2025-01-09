@@ -20,12 +20,13 @@ OverlayInfo overlay_get_info(DWORD pid, GameDetails* game_details) {
     static WCHAR comet_web[] = L"/web/overlay.html";
 
     WCHAR* comet_cwd_win = NULL;
-    WCHAR* win_comet_webpath = NULL;
     WCHAR* parameters = NULL;
 
+    WCHAR* win_comet_webpath = NULL;
     WCHAR* comet_webpath = NULL;
     WCHAR* executable = NULL;
-    WCHAR comet_cwd[256];
+
+    WCHAR comet_cwd[MAX_PATH];
     WCHAR game_id[32];
 
     if (!comet_redist) {
@@ -36,7 +37,6 @@ OverlayInfo overlay_get_info(DWORD pid, GameDetails* game_details) {
     comet_webpath = calloc(wcslen(comet_redist) + sizeof(comet_web), sizeof(*comet_webpath)); 
     parameters = calloc(10 * 1024, sizeof(*parameters));
     if (!executable || !comet_webpath || !parameters) {
-        free(comet_cwd_win);
         free(parameters);
         goto cleanup;
     }
@@ -69,7 +69,9 @@ OverlayInfo overlay_get_info(DWORD pid, GameDetails* game_details) {
     wprintf(L"[galaxy_helper] cwd: %ls\n", comet_cwd_win);
 
 cleanup:
+    free(comet_redist);
     free(executable);
     free(comet_webpath);
+    free(win_comet_webpath);
     return overlay_details;
 }
