@@ -41,3 +41,7 @@ meson setup --cross-file meson/x86_64-w64-mingw32.txt --native-file meson/winegc
 ```
 meson compile -C build
 ```
+
+## Atributions
+
+The project is heavily inspired by https://github.com/openglfreak/winestreamproxy

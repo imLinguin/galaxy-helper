@@ -3,6 +3,7 @@
 #define BRIDGE_GALAXY_H
 
 #include <windows.h>
+#define eprintf(...) fprintf(stderr, __VA_ARGS__);
 
 typedef struct GameDetails {
     char* game_id;

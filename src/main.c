@@ -1,3 +1,4 @@
+#define _GALAXY_LIB_NO_FUN_DEFS
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -10,8 +11,6 @@
 #include "galaxy.h"
 #include "service.h"
 #include "cjson/cJSON.h"
-
-#define eprintf(...) fprintf(stderr, __VA_ARGS__);
 
 int wmain(int argc, WCHAR** argv) {
     int retval = 0;
@@ -102,35 +101,29 @@ int wmain(int argc, WCHAR** argv) {
     }
 
     overlay = overlay_get_info(pe32.th32ProcessID, &details);
+    WINBOOL pipes = FALSE;
     if (!overlay.parameters || !overlay.executable || !overlay.cwd) {
         eprintf("[galaxy_helper] failed to get overlay info");
     }
     else {
-        init_pipes(pe32.th32ProcessID, &win_pipe, &unix_pipe);
-        ShellExecuteW(NULL, NULL, overlay.executable, overlay.parameters, overlay.cwd, SW_NORMAL);
         if (!notify_comet(pe32.th32ProcessID)) {
             eprintf("Failed to notify comet about game session\n");
         }
+        ShellExecuteW(NULL, NULL, overlay.executable, overlay.parameters, overlay.cwd, SW_NORMAL);
+        pipes = init_pipes(pe32.th32ProcessID, &win_pipe, &unix_pipe);
     }
+    if (!pipes) eprintf("An error with pipes\n");
     eprintf("[galaxy_helper] Waiting for app exit\n");
-    char buffer[1024];
     while (WaitForSingleObject(process, 100) == WAIT_TIMEOUT) {
-        DWORD bytesRead = 0;
-        if (ReadFile(win_pipe, buffer, 1024, &bytesRead, NULL)) {
-            eprintf("[galaxy_helper] read %ld from pipe\n", bytesRead);
-        }
-        else if (GetLastError() == ERROR_PIPE_LISTENING) {
-            eprintf("[galaxy_helper] Waiting for pipe to open on client side\n");
-        }
-        else {
-            eprintf("[galaxy_helper] failed to read from pipe %ld\n", GetLastError());
-        }
+        if (pipes) forward_messages(&win_pipe, &unix_pipe);
+        else Sleep(1000);
     }
     eprintf("[galaxy_helper] Finished waiting for game\n");
 end:
     CloseHandle(process);
     CloseHandle(hProcessSnap);
     CloseHandle(win_pipe);
+    cleanup_pipe(unix_pipe);
     free_game_details(&details);
     free(args);
     free_overlay_details(&overlay);
