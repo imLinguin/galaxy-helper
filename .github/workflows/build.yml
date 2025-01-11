@@ -1,0 +1,27 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install gcc-mingw-w64-x86-64 mingw-w64-tools wine64-tools meson
+      - name: Setup build
+        run: meson setup --cross-file meson/x86_64-w64-mingw32.txt --native-file meson/winegcc.txt --buildtype release build
+      - name: Build
+        run: meson compile -C build
+      - name: Upload files
+        uses: actions/upload-artifact@v4
+        with:
+          name: galaxy-helper
+          path: |
+            build/src/galaxy.exe
+            build/unixlib/libgalaxyunixlib.dll.so
+

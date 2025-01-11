@@ -52,7 +52,6 @@ int wmain(int argc, WCHAR** argv) {
         }
     } else {
         eprintf("[galaxy_helper] Failed to determine game information. The overlay will not get injected\n");
-        return -1;
     }
 
     // START AND TRACK THE PROCESS
@@ -87,7 +86,7 @@ int wmain(int argc, WCHAR** argv) {
     pe32.dwSize = sizeof(PROCESSENTRY32W);
     WCHAR* exe;
 
-    if (Process32FirstW(hProcessSnap, &pe32)) {
+    if (details.game_id && Process32FirstW(hProcessSnap, &pe32)) {
         do {
             Sleep(100);
             int index = 0; 
@@ -109,15 +108,16 @@ int wmain(int argc, WCHAR** argv) {
 
     overlay = overlay_get_info(pe32.th32ProcessID, &details);
     WINBOOL pipes = FALSE;
-    if (!overlay.parameters || !overlay.executable || !overlay.cwd) {
-        eprintf("[galaxy_helper] failed to get overlay info");
+    if (!details.game_id || !overlay.parameters || !overlay.executable || !overlay.cwd) {
+        eprintf("[galaxy_helper] failed to get overlay info\n");
     }
     else {
         if (!notify_comet(pe32.th32ProcessID)) {
             eprintf("Failed to notify comet about game session\n");
+        } else {
+            ShellExecuteW(NULL, NULL, overlay.executable, overlay.parameters, overlay.cwd, SW_NORMAL);
+            pipes = init_pipes(pe32.th32ProcessID, &win_pipe, &unix_pipe);
         }
-        ShellExecuteW(NULL, NULL, overlay.executable, overlay.parameters, overlay.cwd, SW_NORMAL);
-        pipes = init_pipes(pe32.th32ProcessID, &win_pipe, &unix_pipe);
     }
     if (!pipes) eprintf("An error with pipes\n");
     eprintf("[galaxy_helper] Waiting for app exit\n");
