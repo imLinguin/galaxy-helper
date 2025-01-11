@@ -1,4 +1,3 @@
-fs = import('fs')
 protoc = find_program('protoc')
 
 proto_files = files(
@@ -12,8 +11,7 @@ proto_files = files(
   'gog_protocols/gog.protocols.pb.proto'
 )
 
-protocols_path = fs.relative_to(meson.current_source_dir(), meson.project_build_root())
-proto_include = '-I' + (protocols_path / 'gog_protocols')
+proto_include = '-I../protocols/gog_protocols'
 
 generated = custom_target(
   'protoc',
