@@ -258,6 +258,16 @@ WINBOOL notify_comet(DWORD pid) {
         return FALSE;
     }
 
+    iResult = shutdown(ConnectSocket, SD_SEND);
+    if (iResult == SOCKET_ERROR) {
+        printf("Failed to shutdown the socket");
+        free(buffer);
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return FALSE;
+    }
+
+
     closesocket(ConnectSocket);
     free(buffer);
     WSACleanup();

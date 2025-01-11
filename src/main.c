@@ -27,8 +27,15 @@ int wmain(int argc, WCHAR** argv) {
     GameDetails details = { 0 };
     OverlayInfo overlay = { 0 };
 
+    // Make sure logs directory is created for overlay to succeed
+    CreateDirectory("C:\\ProgramData\\GOG.com", NULL);
+    CreateDirectory("C:\\ProgramData\\GOG.com\\Galaxy", NULL);
+    CreateDirectory("C:\\ProgramData\\GOG.com\\Galaxy\\logs", NULL);
+    ShowWindow(GetConsoleWindow(), SW_HIDE);
+
     if (!load_functions_once()) {
         eprintf("[galaxy_helper] Failed to load unix functions for sockets\n");
+        return -1;
     }
 
     // Obtain information about the game
@@ -45,6 +52,7 @@ int wmain(int argc, WCHAR** argv) {
         }
     } else {
         eprintf("[galaxy_helper] Failed to determine game information. The overlay will not get injected\n");
+        return -1;
     }
 
     // START AND TRACK THE PROCESS
@@ -67,7 +75,6 @@ int wmain(int argc, WCHAR** argv) {
 
     eprintf("[galaxy_helper] Spawning %ls %ls\n", argv[1], args);
     ShellExecuteW(NULL, NULL, convert_to_win32(argv[1]), args, NULL, SW_SHOWNORMAL);
-    ShowWindow(GetConsoleWindow(), SW_HIDE);
 
     hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 
@@ -114,7 +121,7 @@ int wmain(int argc, WCHAR** argv) {
     }
     if (!pipes) eprintf("An error with pipes\n");
     eprintf("[galaxy_helper] Waiting for app exit\n");
-    while (WaitForSingleObject(process, 100) == WAIT_TIMEOUT) {
+    while (WaitForSingleObject(process, 200) == WAIT_TIMEOUT) {
         if (pipes) forward_messages(&win_pipe, &unix_pipe);
         else Sleep(1000);
     }
