@@ -75,30 +75,32 @@ int wmain(int argc, WCHAR** argv) {
     eprintf("[galaxy_helper] Spawning %ls %ls\n", argv[1], args);
     ShellExecuteW(NULL, NULL, convert_to_win32(argv[1]), args, NULL, SW_SHOWNORMAL);
 
-    hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-
-    if (hProcessSnap == INVALID_HANDLE_VALUE) {
-        retval = -1;
-        goto end;
-    } 
-
     PROCESSENTRY32W pe32;
     pe32.dwSize = sizeof(PROCESSENTRY32W);
-    WCHAR* exe;
+    while (process == INVALID_HANDLE_VALUE) {
+        Sleep(1000);
+        hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        WCHAR* exe;
 
-    if (details.game_id && Process32FirstW(hProcessSnap, &pe32)) {
-        do {
-            Sleep(100);
-            int index = 0; 
-            while((exe = details.exe_names[index++])) {
-                if (wcsstr(exe, pe32.szExeFile)) {
-                    eprintf("[galaxy_helper] Found target executable %ls\n", exe);
-                    process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, FALSE, pe32.th32ProcessID);
-                    break;
+        if (hProcessSnap == INVALID_HANDLE_VALUE) {
+            retval = -1;
+            goto end;
+        } 
+
+        if (details.game_id && Process32FirstW(hProcessSnap, &pe32)) {
+            do {
+                int index = 0; 
+                while((exe = details.exe_names[index++])) {
+                    if (wcsstr(exe, pe32.szExeFile)) {
+                        eprintf("[galaxy_helper] Found target executable %ls\n", exe);
+                        process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, FALSE, pe32.th32ProcessID);
+                        break;
+                    }
                 }
-            }
-            if (process != INVALID_HANDLE_VALUE) break;
-        } while (Process32NextW(hProcessSnap, &pe32) || process == INVALID_HANDLE_VALUE);
+                if (process != INVALID_HANDLE_VALUE) break;
+            } while (Process32NextW(hProcessSnap, &pe32));
+        }
+        CloseHandle(hProcessSnap);
     }
 
     if (process == INVALID_HANDLE_VALUE) {
