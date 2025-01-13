@@ -1,6 +1,3 @@
-#include "galaxy.h"
-#include "cjson/cJSON.h"
-
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
@@ -11,6 +8,8 @@
 #include "gog.protocols.pb.pb-c.h"
 #include "protobuf-c/protobuf-c.h"
 #include "protocols.h"
+#include "galaxy.h"
+#include "cjson/cJSON.h"
 
 void free_game_details(GameDetails* game_details) {
     if (game_details->exe_names) {
