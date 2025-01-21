@@ -74,7 +74,7 @@ WINBOOL init_pipes(DWORD pid, HANDLE* win_pipe, int* unix_pipe) {
 }
 
 void forward_messages(HANDLE *win_pipe, int* unix_pipe) {
-    static unsigned char buffer[10*1024];
+    static unsigned char buffer[64*1024];
     size_t bytesWritten = 0;
     size_t bytesRead_u = 0;
     DWORD bytesRead = 0;
@@ -83,7 +83,7 @@ void forward_messages(HANDLE *win_pipe, int* unix_pipe) {
     recv_status r_status = 0;
 
     if (PeekNamedPipe(*win_pipe, NULL, 0, 0, &bytesAvail, 0) && bytesAvail > 0) {
-        if (ReadFile(*win_pipe, buffer, 10*1024, &bytesRead, NULL)) {
+        if (ReadFile(*win_pipe, buffer, sizeof(buffer), &bytesRead, NULL)) {
             eprintf("[galaxy_helper] win->unix read %ld from pipe\n", bytesRead);
             socket_functions.send(*unix_pipe, buffer, (size_t)bytesRead, &bytesWritten);
             eprintf("[galaxy_helper] win->unix wrote %llu\n", bytesWritten);
@@ -97,7 +97,7 @@ void forward_messages(HANDLE *win_pipe, int* unix_pipe) {
     }
 
     if (socket_functions.poll(*unix_pipe, &status) == 0) {
-        if (status == POLL_STATUS_SUCCESS && socket_functions.recv(*unix_pipe, buffer, 10*1024, &r_status, &bytesRead_u) == 0) {
+        if (status == POLL_STATUS_SUCCESS && socket_functions.recv(*unix_pipe, buffer, sizeof(buffer), &r_status, &bytesRead_u) == 0) {
             eprintf("[galaxy_helper] unix->win read %llu\n", bytesRead_u);
             if (bytesRead_u && !WriteFile(*win_pipe, buffer, (DWORD)bytesRead_u, 0, NULL)) {
                 eprintf("[galaxy_helper] unix->win pipe write failure %ld\n", GetLastError());

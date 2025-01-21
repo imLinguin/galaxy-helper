@@ -10,16 +10,18 @@
 #include "wine.h"
 #include "galaxy.h"
 #include "service.h"
-#include "cjson/cJSON.h"
 
 int wmain(int argc, WCHAR** argv) {
+    ShowWindow(GetConsoleWindow(), SW_HIDE);
     int retval = 0;
     if (argc == 1) {
         eprintf("Need an exe to run!\n");
         return -1;
     }
     int len = 1;
-    WCHAR* args;
+    WCHAR* args = NULL;
+    WCHAR* win_game_exe = NULL;
+    WCHAR* launcher_exe = NULL;
     HANDLE hProcessSnap = INVALID_HANDLE_VALUE;
     HANDLE process = INVALID_HANDLE_VALUE;
     HANDLE win_pipe = INVALID_HANDLE_VALUE;
@@ -31,7 +33,6 @@ int wmain(int argc, WCHAR** argv) {
     CreateDirectory("C:\\ProgramData\\GOG.com", NULL);
     CreateDirectory("C:\\ProgramData\\GOG.com\\Galaxy", NULL);
     CreateDirectory("C:\\ProgramData\\GOG.com\\Galaxy\\logs", NULL);
-    ShowWindow(GetConsoleWindow(), SW_HIDE);
 
     if (!load_functions_once()) {
         eprintf("[galaxy_helper] Failed to load unix functions for sockets\n");
@@ -73,23 +74,39 @@ int wmain(int argc, WCHAR** argv) {
     }
 
     eprintf("[galaxy_helper] Spawning %ls %ls\n", argv[1], args);
-    ShellExecuteW(NULL, NULL, convert_to_win32(argv[1]), args, NULL, SW_SHOWNORMAL);
+    win_game_exe = convert_to_win32(argv[1]);
+    unsigned long long exe_len = wcslen(win_game_exe) - 1;
+    for (unsigned long long exe_cursor = exe_len; exe_cursor > 0; exe_cursor--) {
+        if (win_game_exe[exe_cursor] == '/' || win_game_exe[exe_cursor] == '\\') {
+            launcher_exe = win_game_exe + exe_cursor;
+            break;
+        }
+    }
+    if (!launcher_exe) launcher_exe = win_game_exe;
+    ShellExecuteW(NULL, NULL, win_game_exe, args, NULL, SW_SHOWNORMAL);
 
     PROCESSENTRY32W pe32;
     pe32.dwSize = sizeof(PROCESSENTRY32W);
-    while (process == INVALID_HANDLE_VALUE) {
+    int elapsed_sec = 0;
+
+    while (details.game_id && process == INVALID_HANDLE_VALUE) {
         Sleep(1000);
+        elapsed_sec++;
         hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         WCHAR* exe;
+        int launcher_running = elapsed_sec < 6;
 
         if (hProcessSnap == INVALID_HANDLE_VALUE) {
             retval = -1;
             goto end;
         } 
 
-        if (details.game_id && Process32FirstW(hProcessSnap, &pe32)) {
+        if (Process32FirstW(hProcessSnap, &pe32)) {
             do {
                 int index = 0; 
+                if (!launcher_running && launcher_exe != win_game_exe && wcsstr(launcher_exe, pe32.szExeFile)) {
+                   launcher_running = 1;
+                }
                 while((exe = details.exe_names[index++])) {
                     if (wcsstr(exe, pe32.szExeFile)) {
                         eprintf("[galaxy_helper] Found target executable %ls\n", exe);
@@ -101,6 +118,9 @@ int wmain(int argc, WCHAR** argv) {
             } while (Process32NextW(hProcessSnap, &pe32));
         }
         CloseHandle(hProcessSnap);
+        if (!launcher_running) {
+            goto end;
+        }
     }
 
     if (process == INVALID_HANDLE_VALUE) {
@@ -135,6 +155,7 @@ end:
     cleanup_pipe(unix_pipe);
     free_game_details(&details);
     free(args);
+    free(win_game_exe);
     free_overlay_details(&overlay);
     return retval;
 }
