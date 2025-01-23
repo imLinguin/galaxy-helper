@@ -53,7 +53,7 @@ int __stdcall socket_poll(int const socket, poll_status* const out_status) {
     fd.fd = socket;
     fd.events = POLLIN | POLLPRI | POLLHUP;
     fd.revents = 0;
-    while (((nfds = poll(&fd, 1, 500)) == -1 && (errno == EAGAIN || errno == EINTR)));
+    while (((nfds = poll(&fd, 1, 100)) == -1 && (errno == EAGAIN || errno == EINTR)));
     
     if (nfds == 0) {
         *out_status = POLL_STATUS_TIMEOUT;

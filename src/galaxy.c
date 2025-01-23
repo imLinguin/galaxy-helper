@@ -4,9 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "galaxy.protocols.communication_service.pb-c.h"
-#include "gog.protocols.pb.pb-c.h"
-#include "protobuf-c/protobuf-c.h"
 #include "protocols.h"
 #include "galaxy.h"
 #include "cjson/cJSON.h"
