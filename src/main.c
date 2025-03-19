@@ -166,7 +166,10 @@ int wmain(int argc, WCHAR** argv) {
         }
         CloseHandle(hProcessSnap);
         if (launcher_process != INVALID_HANDLE_VALUE) {
-            GetExitCodeProcess(launcher_process, &launcher_running);
+            if (!GetExitCodeProcess(launcher_process, &launcher_running)) {
+                eprintf("There was an error getting launcher exit code %ld", GetLastError());
+                break;
+            }
             eprintf("The launcher is %lu\n", launcher_running);
             if (process == INVALID_HANDLE_VALUE && launcher_running != STILL_ACTIVE) {
                 goto end;
