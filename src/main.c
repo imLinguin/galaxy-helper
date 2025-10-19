@@ -1,3 +1,4 @@
+#include <minwindef.h>
 #define _GALAXY_LIB_NO_FUN_DEFS
 #include <stdlib.h>
 #include <stdio.h>
@@ -33,12 +34,22 @@ int wmain(int argc, WCHAR** argv) {
     SHFILEINFOW sfi;
     DWORD flags = CREATE_UNICODE_ENVIRONMENT;
     DWORD console;
+    HKEY galaxyClientReg;
 
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
     ZeroMemory(&launch_process, sizeof(launch_process));
     launch_process.hThread = INVALID_HANDLE_VALUE;
     launch_process.hProcess = INVALID_HANDLE_VALUE;
+    
+    if (RegCreateKeyExW(HKEY_LOCAL_MACHINE,
+                        L"SOFTWARE\\WOW6432Node\\GOG.com\\GalaxyClient", 0, NULL,
+                        REG_OPTION_NON_VOLATILE, KEY_READ, NULL, &galaxyClientReg,
+                        NULL) == ERROR_SUCCESS) {
+
+        RegCloseKey(galaxyClientReg);
+    }
+
 
     // Make sure logs directory is created for overlay to succeed
     CreateDirectory("C:\\ProgramData\\GOG.com", NULL);
@@ -133,7 +144,9 @@ int wmain(int argc, WCHAR** argv) {
         (*parameters_start) = '\0';
 
         eprintf("[galaxy_helper] Spawning %ls %ls\n", args, parameters_start + 1);
-        ShellExecuteExW(&exeInfo);
+        if (!ShellExecuteExW(&exeInfo)) {
+            eprintf("Failed to spawn process %lu\n", GetLastError());
+        }
         launcher_process = exeInfo.hProcess;
     }
     
