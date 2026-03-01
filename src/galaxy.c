@@ -4,9 +4,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "cjson/cJSON.h"
+
 #include "protocols.h"
 #include "galaxy.h"
-#include "cjson/cJSON.h"
 
 void free_game_details(GameDetails* game_details) {
     if (game_details->exe_names) {
