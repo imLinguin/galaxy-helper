@@ -12,6 +12,9 @@
 #include "galaxy.h"
 #include "service.h"
 
+
+static WCHAR gogGalaxyProgramFiles[] = L"C:\\Program Files\\GOG Galaxy";
+
 int wmain(int argc, WCHAR** argv) {
     ShowWindow(GetConsoleWindow(), SW_HIDE);
     int retval = 0;
@@ -43,10 +46,18 @@ int wmain(int argc, WCHAR** argv) {
     launch_process.hProcess = INVALID_HANDLE_VALUE;
     
     if (RegCreateKeyExW(HKEY_LOCAL_MACHINE,
-                        L"SOFTWARE\\WOW6432Node\\GOG.com\\GalaxyClient", 0, NULL,
-                        REG_OPTION_NON_VOLATILE, KEY_READ, NULL, &galaxyClientReg,
+                        L"SOFTWARE\\WOW6432Node\\GOG.com\\GalaxyClient\\paths", 0, NULL,
+                        REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &galaxyClientReg,
                         NULL) == ERROR_SUCCESS) {
 
+        RegSetValueExW(
+            galaxyClientReg,
+            L"client",
+            0,
+            REG_SZ,
+            (const BYTE*)gogGalaxyProgramFiles,
+            (wcslen(gogGalaxyProgramFiles) + 1) * sizeof(WCHAR)
+        );
         RegCloseKey(galaxyClientReg);
     }
 
