@@ -6,6 +6,8 @@
 #include <windows.h>
 #include "unixlib/socket.h"
 
+#define PIPE_BUFFER_SIZE (64 * 1024)
+
 static HMODULE unixlib = NULL;
 static UnixlibFunctions socket_functions;
 
@@ -45,7 +47,7 @@ WINBOOL init_pipes(DWORD pid, HANDLE* win_pipe, int* unix_pipe) {
     }
     sprintf(pipeName, "\\\\.\\pipe\\Galaxy-%ld-CommunicationService-Overlay", pid);
     sprintf(unixPipe, "/tmp/Galaxy-%ld-CommunicationService-Overlay", pid);
-    *win_pipe = CreateNamedPipe(pipeName, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE, PIPE_UNLIMITED_INSTANCES, 1024, 1024, 0, NULL);
+    *win_pipe = CreateNamedPipe(pipeName, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE, PIPE_UNLIMITED_INSTANCES, PIPE_BUFFER_SIZE, PIPE_BUFFER_SIZE, 0, NULL);
     if (*win_pipe == INVALID_HANDLE_VALUE) {
         free(unixPipe);
         free(address);
@@ -73,9 +75,58 @@ WINBOOL init_pipes(DWORD pid, HANDLE* win_pipe, int* unix_pipe) {
     return TRUE;
 }
 
+// A stream socket can accept fewer bytes than it was handed. Dropping the
+// remainder truncates a length prefixed message, which desynchronises the
+// stream and surfaces later as a broken pipe on the overlay side.
+static WINBOOL send_all_unix(int unix_pipe, unsigned char* buffer, size_t length) {
+    size_t total = 0;
+
+    while (total < length) {
+        size_t written = 0;
+        int res = socket_functions.send(unix_pipe, buffer + total, length - total, &written);
+
+        if (res != 0) {
+            eprintf("[galaxy_helper] win->unix send failed after %llu of %llu bytes - %d\n",
+                    (unsigned long long)total, (unsigned long long)length, res);
+            return FALSE;
+        }
+        if (written == 0) {
+            eprintf("[galaxy_helper] win->unix send stalled after %llu of %llu bytes\n",
+                    (unsigned long long)total, (unsigned long long)length);
+            return FALSE;
+        }
+
+        total += written;
+    }
+
+    return TRUE;
+}
+
+// WriteFile is equally free to write less than asked for, and the previous
+// call discarded the count entirely by passing NULL for it.
+static WINBOOL write_all_win(HANDLE win_pipe, unsigned char* buffer, DWORD length) {
+    DWORD total = 0;
+
+    while (total < length) {
+        DWORD written = 0;
+
+        if (!WriteFile(win_pipe, buffer + total, length - total, &written, NULL)) {
+            eprintf("[galaxy_helper] unix->win pipe write failure %ld\n", GetLastError());
+            return FALSE;
+        }
+        if (written == 0) {
+            eprintf("[galaxy_helper] unix->win write stalled after %lu of %lu bytes\n", total, length);
+            return FALSE;
+        }
+
+        total += written;
+    }
+
+    return TRUE;
+}
+
 void forward_messages(HANDLE *win_pipe, int* unix_pipe) {
-    static unsigned char buffer[64*1024];
-    size_t bytesWritten = 0;
+    static unsigned char buffer[PIPE_BUFFER_SIZE];
     size_t bytesRead_u = 0;
     DWORD bytesRead = 0;
     DWORD bytesAvail = 0;
@@ -85,8 +136,7 @@ void forward_messages(HANDLE *win_pipe, int* unix_pipe) {
     if (PeekNamedPipe(*win_pipe, NULL, 0, 0, &bytesAvail, 0) && bytesAvail > 0) {
         if (ReadFile(*win_pipe, buffer, sizeof(buffer), &bytesRead, NULL)) {
             eprintf("[galaxy_helper] win->unix read %ld from pipe\n", bytesRead);
-            socket_functions.send(*unix_pipe, buffer, (size_t)bytesRead, &bytesWritten);
-            eprintf("[galaxy_helper] win->unix wrote %llu\n", bytesWritten);
+            send_all_unix(*unix_pipe, buffer, (size_t)bytesRead);
         }
         else if (GetLastError() == ERROR_PIPE_LISTENING) {
             eprintf("[galaxy_helper] Waiting for pipe to open on client side\n");
@@ -98,9 +148,9 @@ void forward_messages(HANDLE *win_pipe, int* unix_pipe) {
 
     if (socket_functions.poll(*unix_pipe, &status) == 0) {
         if (status == POLL_STATUS_SUCCESS && socket_functions.recv(*unix_pipe, buffer, sizeof(buffer), &r_status, &bytesRead_u) == 0) {
-            eprintf("[galaxy_helper] unix->win read %llu\n", bytesRead_u);
-            if (bytesRead_u && !WriteFile(*win_pipe, buffer, (DWORD)bytesRead_u, 0, NULL)) {
-                eprintf("[galaxy_helper] unix->win pipe write failure %ld\n", GetLastError());
+            eprintf("[galaxy_helper] unix->win read %llu\n", (unsigned long long)bytesRead_u);
+            if (bytesRead_u) {
+                write_all_win(*win_pipe, buffer, (DWORD)bytesRead_u);
             }
         }
     }
